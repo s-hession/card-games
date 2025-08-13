@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://b3tjocvx1jcgl"]
+
+[node name="Host Button" type="Button"]
+offset_left = 289.0
+offset_top = 94.0
+offset_right = 848.0
+offset_bottom = 275.0
+theme_override_font_sizes/font_size = 40
+text = "Host Game"

@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://bbrqykm4kubd6"]
+
+[ext_resource type="Script" uid="uid://c35qdbd242vtk" path="res://Scripts/game.gd" id="1_ebmjs"]
+[ext_resource type="Resource" uid="uid://ckki45g3hgfa2" path="res://Resources/standard_deck.tres" id="2_qxrlw"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_ebmjs")
+deck_template = ExtResource("2_qxrlw")
+
+[node name="Label" type="Label" parent="."]
+offset_left = 971.0
+offset_top = 25.0
+offset_right = 1134.0
+offset_bottom = 99.0
+theme_override_font_sizes/font_size = 40
+text = "0"
+horizontal_alignment = 2
