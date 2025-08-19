@@ -3,13 +3,16 @@ extends Node2D
 @export var deck_template: Resource
 
 @onready var label := $Label
+@onready var btn_start_game := $"Start Game Button"
+
 
 var DECK = preload("res://Scenes/deck.tscn")
 var PLAYER = preload("res://Scenes/player.tscn")
 
 var _deck
-var _players: Array
-var number_of_players: int = 4
+var _player_nodes: Array
+var players_required:int = 3
+var _local_player
 
 signal player_connected(peer_id, player_info)
 signal player_disconnected(peer_id)
@@ -21,7 +24,7 @@ const MAX_CONNECTIONS = 20
 
 # This will contain player info for every player,
 # with the keys being each player's unique IDs.
-var players = {}
+var players = {} #TODO rename
 
 # This is the local player info. This should be modified locally
 # before the connection is made. It will be passed to every other peer.
@@ -37,7 +40,7 @@ func _ready():
 	multiplayer.connected_to_server.connect(_on_connected_ok)
 	multiplayer.connection_failed.connect(_on_connected_fail)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
-	
+	multiplayer.allow_object_decoding = true
 	player_info["name"] = randi() % 20
 
 func update_label():
@@ -98,6 +101,7 @@ func _register_player(new_player_info):
 	players[new_player_id] = new_player_info
 	player_connected.emit(new_player_id, new_player_info)
 	update_label()
+	player_count_reached()
 
 func _on_player_disconnected(id):
 	players.erase(id)
@@ -117,37 +121,69 @@ func _on_server_disconnected():
 	players.clear()
 	server_disconnected.emit()
 
+func player_count_reached():
+	if players.size() == players_required:
+		btn_start_game.visible = true
 #endregion
 
 #region Game
+@rpc("any_peer","unreliable", "call_local")
 func start():
+	if multiplayer.is_server():
+		start_players()
+
+func finish_setup():
 	create_deck()
-	create_players(number_of_players)
 	deal()
-	show_hands()
+	show_hands.rpc()
+
+func start_players():
+	if multiplayer.is_server():
+		remove_start_button.rpc()
+		create_players.rpc()
+
+@rpc("authority","unreliable", "call_local")
+func remove_start_button():
+	btn_start_game.queue_free()
+
+@rpc("authority","unreliable", "call_local")
+func create_players():
+	_local_player = PLAYER.instantiate()
+	add_child(_local_player)
+	add_to_player_list.rpc_id(1, _local_player) #TODO dont pass serialized object
+
+@rpc("any_peer","unreliable", "call_local")
+func add_to_player_list(player:Node2D): #TODO other way to ensure all player objects ready
+	_player_nodes.append(player)
+	if _player_nodes.size() == players_required:
+		finish_setup()
 
 func create_deck():
-	_deck = DECK.instantiate()
-	_deck.create_deck(deck_template)
-	add_child(_deck)
-	
-func create_players(amount):
-	for i in amount:
-		var player = PLAYER.instantiate()
-		_players.append(player)
-		add_child(player)
+	if multiplayer.is_server():
+		_deck = DECK.instantiate()
+		_deck.create_deck(deck_template)
+		add_child(_deck)
 
+@rpc("authority","unreliable", "call_local")
 func deal():
 	if !_deck.is_deck_full():
 		return
 	var i = 0
+	var player_ids = players.keys()
 	for card in _deck.current_deck:
-		_players[i].add_to_hand(card)
+		add_card_to_hand.rpc_id(player_ids[i], card._suit, card._rank) #TODO needs to be serialized ?
 		i+= 1
-		if i >= 4:
+		if i >= players_required:
 			i =0
 
+@rpc("authority","unreliable", "call_local")
+func add_card_to_hand(suit, rank):
+	_local_player.add_to_hand(suit, rank)
+
+@rpc("authority","unreliable", "call_local")
 func show_hands():
-	for player in _players:
-		player.show_hand()
+	_local_player.show_hand()
 #endregion
+
+func _on_start_game_button_pressed() -> void:
+	start.rpc()
