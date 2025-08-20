@@ -1,4 +1,5 @@
 extends Node
 
-signal HostGame
-signal JoinGame
+signal CardSelected(select:bool)
+signal CardPlayed
+signal InfoCardSelected(card:Node)

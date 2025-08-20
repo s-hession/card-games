@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://bbrqykm4kubd6"]
+[gd_scene load_steps=5 format=3 uid="uid://bbrqykm4kubd6"]
 
 [ext_resource type="Script" uid="uid://c35qdbd242vtk" path="res://Scripts/game.gd" id="1_ebmjs"]
 [ext_resource type="Resource" uid="uid://ckki45g3hgfa2" path="res://Resources/standard_deck.tres" id="2_qxrlw"]
 [ext_resource type="PackedScene" uid="uid://b3tjocvx1jcgl" path="res://Scenes/host_button.tscn" id="3_wrm1d"]
+[ext_resource type="PackedScene" uid="uid://7kkobetlcrwx" path="res://Scenes/play_area.tscn" id="4_3dryh"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_ebmjs")
@@ -18,11 +19,13 @@ text = "0"
 horizontal_alignment = 2
 
 [node name="Start Game Button" parent="." instance=ExtResource("3_wrm1d")]
-visible = false
 offset_left = 756.0
 offset_top = 476.0
 offset_right = 1136.0
 offset_bottom = 610.0
 text = "Start Game"
+
+[node name="Play Area" parent="." instance=ExtResource("4_3dryh")]
+position = Vector2(527, 221)
 
 [connection signal="pressed" from="Start Game Button" to="." method="_on_start_game_button_pressed"]

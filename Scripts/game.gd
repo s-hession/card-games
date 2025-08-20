@@ -13,6 +13,7 @@ var _deck
 var _player_nodes: Array
 var players_required:int = 3
 var _local_player
+var _selected_card:Node
 
 signal player_connected(peer_id, player_info)
 signal player_disconnected(peer_id)
@@ -24,7 +25,7 @@ const MAX_CONNECTIONS = 20
 
 # This will contain player info for every player,
 # with the keys being each player's unique IDs.
-var players = {} #TODO rename
+var players = {} 
 
 # This is the local player info. This should be modified locally
 # before the connection is made. It will be passed to every other peer.
@@ -34,14 +35,22 @@ var player_info = {"name": "Name"}
 
 var players_loaded = 0
 
+var TESTING:bool = true #TODO
+
 func _ready():
+	if TESTING:
+		players_required = 1
+		players = {1:"Name"}
 	multiplayer.peer_connected.connect(_on_player_connected)
 	multiplayer.peer_disconnected.connect(_on_player_disconnected)
 	multiplayer.connected_to_server.connect(_on_connected_ok)
 	multiplayer.connection_failed.connect(_on_connected_fail)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 	multiplayer.allow_object_decoding = true
-	player_info["name"] = randi() % 20
+	player_info["name"] = randi() % 20 #TODO
+	
+	SignalBus.InfoCardSelected.connect(set_selected_card)
+	SignalBus.CardPlayed.connect(attempt_card_played)
 
 func update_label():
 	label.text = str(players.size())
@@ -171,7 +180,7 @@ func deal():
 	var i = 0
 	var player_ids = players.keys()
 	for card in _deck.current_deck:
-		add_card_to_hand.rpc_id(player_ids[i], card._suit, card._rank) #TODO needs to be serialized ?
+		add_card_to_hand.rpc_id(player_ids[i], card._suit, card._rank) #TODO obj
 		i+= 1
 		if i >= players_required:
 			i =0
@@ -183,6 +192,16 @@ func add_card_to_hand(suit, rank):
 @rpc("authority","unreliable", "call_local")
 func show_hands():
 	_local_player.show_hand()
+
+func set_selected_card(card:Node):
+	_selected_card = card
+
+func attempt_card_played():
+	if _selected_card == null:
+		return
+	_selected_card.played() #TODO new func rpc call, clients
+	_selected_card = null
+
 #endregion
 
 func _on_start_game_button_pressed() -> void:
