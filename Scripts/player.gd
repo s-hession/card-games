@@ -6,10 +6,14 @@ var hand: Array
 
 @rpc("authority","unreliable", "call_local")
 func add_to_hand(suit, rank):
-	var card = CARD.instantiate()
-	card.init_card(suit, rank)
+	var card = init_card(suit, rank)
 	add_child(card)
 	hand.append(card)
+
+func init_card(suit, rank) -> Node2D:
+	var card = CARD.instantiate()
+	card.init_card(suit, rank)
+	return card
 
 func print_hand():
 	var peer_id = multiplayer.get_unique_id()
@@ -20,7 +24,7 @@ func print_hand():
 	print(txt)
 
 @rpc("authority","unreliable", "call_local")
-func show_hand(): #TODO give cards ID, remove from hand by id, signal
+func show_hand():
 	#region Display Hand vars
 	var card_idx:int =0 #TODO set here?
 	var middle_card_pos:Vector2 = Vector2(600,450)
@@ -34,9 +38,13 @@ func show_hand(): #TODO give cards ID, remove from hand by id, signal
 		increment_dist = 0.5
 		increment_rot = 0.5
 	#endregion
+	print(str(multiplayer.get_unique_id()) + ": " + str(hand.size()))
 	for card in hand:
-		middle_card_pos = Vector2(middle_card_pos.x + oscilate*increment_dist*x_dist, middle_card_pos.y + increment_rot*y_dist)
+		#card x position starts at a centre and cards are fanned out around this card
+		#card y position is highest at centre and is lowered as it reaches edges
+		middle_card_pos = Vector2(middle_card_pos.x + oscilate*increment_dist*x_dist, middle_card_pos.y + increment_rot*y_dist) 
 		card.global_position = middle_card_pos
+		#card is rotated incrementally as cards reach the edge of hand
 		card.rotation_degrees = oscilate*increment_rot*rot
 		card.init_transform(card_idx) #TODO rename
 		if oscilate == 1:
@@ -51,3 +59,8 @@ func remove_from_hand(idx:int):
 			hand.erase(card)
 			break
 	show_hand()
+
+func show_opponent_card(suit, rank):
+	var card = init_card(suit, rank)
+	get_child(0).add_child(card)
+	card.played_by_opponent()

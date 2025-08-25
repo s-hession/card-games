@@ -19,6 +19,7 @@ text = "0"
 horizontal_alignment = 2
 
 [node name="Start Game Button" parent="." instance=ExtResource("3_wrm1d")]
+visible = false
 offset_left = 756.0
 offset_top = 476.0
 offset_right = 1136.0

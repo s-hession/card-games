@@ -35,7 +35,8 @@ var player_info = {"name": "Name"}
 
 var players_loaded = 0
 
-var TESTING:bool = true #TODO
+#change scene also
+var TESTING:bool = false #TODO command line arg
 
 func _ready():
 	if TESTING:
@@ -47,7 +48,7 @@ func _ready():
 	multiplayer.connection_failed.connect(_on_connected_fail)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 	multiplayer.allow_object_decoding = true
-	player_info["name"] = randi() % 20 #TODO
+	player_info["name"] = randi() % 20 #TODO more detailed player info
 	
 	SignalBus.InfoCardSelected.connect(set_selected_card)
 	SignalBus.CardPlayed.connect(attempt_card_played)
@@ -56,7 +57,7 @@ func update_label():
 	label.text = str(players.size())
 
 #region Multiplayer
-
+#TODO create lobby scene
 func join_game(address = ""):
 	if address.is_empty():
 		address = DEFAULT_SERVER_IP
@@ -139,17 +140,15 @@ func player_count_reached():
 @rpc("any_peer","unreliable", "call_local")
 func start():
 	if multiplayer.is_server():
-		start_players()
+		if players.size() != players_required:
+			return
+		remove_start_button.rpc()
+		create_players.rpc()
 
 func finish_setup():
 	create_deck()
 	deal()
 	show_hands.rpc()
-
-func start_players():
-	if multiplayer.is_server():
-		remove_start_button.rpc()
-		create_players.rpc()
 
 @rpc("authority","unreliable", "call_local")
 func remove_start_button():
@@ -181,6 +180,7 @@ func deal():
 	var player_ids = players.keys()
 	for card in _deck.current_deck:
 		add_card_to_hand.rpc_id(player_ids[i], card._suit, card._rank) #TODO obj
+		print(player_ids[i])
 		i+= 1
 		if i >= players_required:
 			i =0
@@ -200,9 +200,15 @@ func attempt_card_played():
 	if _selected_card == null:
 		return
 	_selected_card.played() #TODO new func rpc call, clients
+	spawn_card_on_remote.rpc(_selected_card._suit, _selected_card._rank)
 	_selected_card = null
+
+#breaks starfish pattern
+@rpc("any_peer","unreliable","call_remote")
+func spawn_card_on_remote(suit, rank):
+	_local_player.show_opponent_card(suit, rank)
 
 #endregion
 
 func _on_start_game_button_pressed() -> void:
-	start.rpc()
+	start.rpc_id(1)

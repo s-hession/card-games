@@ -16,7 +16,9 @@ var b_played:bool = false
 
 var hover_growth_scale:float = 1.5
 var selected_growth_scale:float = 1.2
-var played_location := Vector2(450,100)
+var played_location := Vector2(550,200)
+var opponent_played_offset:= Vector2(-200, -50)
+var opponent_played_rotation:int = 120
 
 func _ready() -> void:
 	SignalBus.CardSelected.connect(card_selected)
@@ -30,11 +32,12 @@ func _physics_process(delta: float) -> void:
 		clicked()
 
 func clicked():
-	if b_mouse_over and Input.is_action_just_pressed("select") and !other_card_selected:
+	if b_mouse_over and Input.is_action_just_pressed("select") and !other_card_selected: #TODO enums/ controller
 		selected = !selected
 		SignalBus.CardSelected.emit(selected)
+		#TODO implement turns 
 		if selected:
-			SignalBus.InfoCardSelected.emit(self)
+			SignalBus.InfoCardSelected.emit(self) #TODO ??
 			scale *= selected_growth_scale
 		else:
 			SignalBus.InfoCardSelected.emit(null)
@@ -56,8 +59,15 @@ func played():
 	b_played = true
 	position = played_location
 	scale /= (hover_growth_scale * selected_growth_scale)
-	get_parent().remove_from_hand(_index)
+	get_parent().remove_from_hand(_index) #TODO signal?
 	SignalBus.CardSelected.emit(false)
+
+func played_by_opponent():
+	var pos := played_location + opponent_played_offset #change for y addition but x subtration
+	global_position = pos
+	rotation_degrees = opponent_played_rotation
+	selected = true
+	b_played = true
 
 func _on_control_mouse_entered() -> void:
 	b_mouse_over = true
