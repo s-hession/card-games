@@ -6,3 +6,10 @@
 script = ExtResource("1_v0iea")
 
 [node name="Opponent Cards" type="Node2D" parent="."]
+
+[node name="Label" type="Label" parent="."]
+visible = false
+offset_right = 1223.0
+offset_bottom = 393.0
+theme_override_font_sizes/font_size = 48
+text = "my turn"

@@ -37,7 +37,7 @@ func clicked():
 		SignalBus.CardSelected.emit(selected)
 		#TODO implement turns 
 		if selected:
-			SignalBus.InfoCardSelected.emit(self) #TODO ??
+			SignalBus.InfoCardSelected.emit(self)
 			scale *= selected_growth_scale
 		else:
 			SignalBus.InfoCardSelected.emit(null)

@@ -10,10 +10,12 @@ var DECK = preload("res://Scenes/deck.tscn")
 var PLAYER = preload("res://Scenes/player.tscn")
 
 var _deck
-var _player_nodes: Array
+var _i_players_ready:int = 0
 var players_required:int = 3
 var _local_player
 var _selected_card:Node
+var _idx_current_turn:int = 0
+var _array_turn_order:Array
 
 signal player_connected(peer_id, player_info)
 signal player_disconnected(peer_id)
@@ -33,8 +35,6 @@ var players = {}
 # entered in a UI scene.
 var player_info = {"name": "Name"}
 
-var players_loaded = 0
-
 #change scene also
 var TESTING:bool = false #TODO command line arg
 
@@ -53,6 +53,9 @@ func _ready():
 	SignalBus.InfoCardSelected.connect(set_selected_card)
 	SignalBus.CardPlayed.connect(attempt_card_played)
 
+func _process(delta: float) -> void:
+	pass
+
 func update_label():
 	label.text = str(players.size())
 
@@ -68,7 +71,6 @@ func join_game(address = ""):
 	multiplayer.multiplayer_peer = peer
 	update_label()
 
-
 func create_game():
 	var peer = ENetMultiplayerPeer.new()
 	var error = peer.create_server(PORT, MAX_CONNECTIONS)
@@ -80,11 +82,9 @@ func create_game():
 	player_connected.emit(1, player_info)
 	update_label()
 
-
 func remove_multiplayer_peer():
 	multiplayer.multiplayer_peer = null
 	players.clear()
-
 
 # When the server decides to start the game from a UI scene,
 # do Lobby.load_game.rpc(filepath)
@@ -92,15 +92,10 @@ func remove_multiplayer_peer():
 func load_game(game_scene_path):
 	get_tree().change_scene_to_file(game_scene_path)
 
-
 # Every peer will call this when they have loaded the game scene.
 @rpc("any_peer", "call_local", "reliable")
 func player_loaded():
-	if multiplayer.is_server():
-		players_loaded += 1
-		#if players_loaded == players.size():
-			#$/root/Game.start_game()
-			#players_loaded = 0
+	pass
 
 func _on_player_connected(id):
 	_register_player.rpc_id(id, player_info)
@@ -146,6 +141,7 @@ func start():
 		create_players.rpc()
 
 func finish_setup():
+	set_turn_order()
 	create_deck()
 	deal()
 	show_hands.rpc()
@@ -158,13 +154,16 @@ func remove_start_button():
 func create_players():
 	_local_player = PLAYER.instantiate()
 	add_child(_local_player)
-	add_to_player_list.rpc_id(1, _local_player) #TODO dont pass serialized object
+	add_to_player_list.rpc_id(1) 
 
 @rpc("any_peer","unreliable", "call_local")
-func add_to_player_list(player:Node2D): #TODO other way to ensure all player objects ready
-	_player_nodes.append(player)
-	if _player_nodes.size() == players_required:
+func add_to_player_list(): #TODO check
+	_i_players_ready += 1
+	if _i_players_ready == players_required:
 		finish_setup()
+
+func set_turn_order():
+	_array_turn_order = players.keys().duplicate()
 
 func create_deck():
 	if multiplayer.is_server():
@@ -180,7 +179,6 @@ func deal():
 	var player_ids = players.keys()
 	for card in _deck.current_deck:
 		add_card_to_hand.rpc_id(player_ids[i], card._suit, card._rank) #TODO obj
-		print(player_ids[i])
 		i+= 1
 		if i >= players_required:
 			i =0
@@ -202,12 +200,24 @@ func attempt_card_played():
 	_selected_card.played() #TODO new func rpc call, clients
 	spawn_card_on_remote.rpc(_selected_card._suit, _selected_card._rank)
 	_selected_card = null
+	determine_next_turn.rpc_id(1)
 
-#breaks starfish pattern
+#TODO breaks starfish pattern
 @rpc("any_peer","unreliable","call_remote")
 func spawn_card_on_remote(suit, rank):
 	_local_player.show_opponent_card(suit, rank)
 
+@rpc("any_peer", "unreliable","call_local")
+func determine_next_turn():
+	_idx_current_turn += 1 #TODO modulo
+	if _idx_current_turn >= players_required:
+		_idx_current_turn = 0
+	var id_current_player = _array_turn_order[_idx_current_turn]
+	publish_next_turn.rpc(id_current_player)
+
+@rpc("unreliable","call_local")
+func publish_next_turn(id_current_player:int):
+	_local_player.is_turn(id_current_player)
 #endregion
 
 func _on_start_game_button_pressed() -> void:

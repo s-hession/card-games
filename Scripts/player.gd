@@ -2,7 +2,10 @@ extends Node2D
 
 const CARD = preload("res://Scenes/card.tscn")
 
+@onready var label: Label = $Label
+
 var hand: Array
+var _is_my_turn:bool = false
 
 @rpc("authority","unreliable", "call_local")
 func add_to_hand(suit, rank):
@@ -64,3 +67,10 @@ func show_opponent_card(suit, rank):
 	var card = init_card(suit, rank)
 	get_child(0).add_child(card)
 	card.played_by_opponent()
+
+func is_turn(id: int):
+	if id == multiplayer.get_unique_id():
+		_is_my_turn = true
+	else:
+		_is_my_turn = false
+	label.visible = _is_my_turn
