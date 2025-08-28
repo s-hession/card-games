@@ -13,6 +13,7 @@ var b_mouse_over:bool =false
 var selected:bool = false
 var other_card_selected:bool = false
 var b_played:bool = false
+var state:Enums.CARD_STATE = Enums.CARD_STATE.DEFAULT
 
 var hover_growth_scale:float = 1.5
 var selected_growth_scale:float = 1.2
@@ -30,9 +31,15 @@ func card_selected(select:bool):
 func _physics_process(delta: float) -> void:
 	if !b_played:
 		clicked()
+	#if state != Enums.CARD_STATE.PLAYED:
+		#clicked()
 
 func clicked():
+	#if state == Enums.CARD_STATE.HOVER and and Input.is_action_just_pressed("select") and !other_card_selected:
 	if b_mouse_over and Input.is_action_just_pressed("select") and !other_card_selected: #TODO enums/ controller
+		var is_my_turn = determine_my_turn()
+		if !is_my_turn:
+			return
 		selected = !selected
 		SignalBus.CardSelected.emit(selected)
 		#TODO implement turns 
@@ -56,6 +63,7 @@ func init_transform(idx:int):
 	_current_rotation = rotation
 
 func played():
+	#state = Enums.CARD_STATE.PLAYED
 	b_played = true
 	position = played_location
 	scale /= (hover_growth_scale * selected_growth_scale)
@@ -68,8 +76,10 @@ func played_by_opponent():
 	rotation_degrees = opponent_played_rotation
 	selected = true
 	b_played = true
+	#state = Enums.CARD_STATE.PLAYED
 
 func _on_control_mouse_entered() -> void:
+	#state = Enums.CARD_STATE.HOVER
 	b_mouse_over = true
 	if selected:
 		return
@@ -78,9 +88,14 @@ func _on_control_mouse_entered() -> void:
 	position = Vector2(_current_position.x, 400)
 
 func _on_control_mouse_exited() -> void:
+	#if state == Enums.CARD_STATE.HOVER:
+		#state = Enums.CARD_STATE.DEFAULT
 	b_mouse_over = false
 	if selected:
 		return
 	scale /= hover_growth_scale
 	rotation = _current_rotation
 	position = _current_position
+
+func determine_my_turn() -> bool:
+	return get_parent()._is_my_turn

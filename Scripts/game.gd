@@ -14,7 +14,7 @@ var _i_players_ready:int = 0
 var players_required:int = 3
 var _local_player
 var _selected_card:Node
-var _idx_current_turn:int = 0
+var _idx_current_turn:int = -1
 var _array_turn_order:Array
 
 signal player_connected(peer_id, player_info)
@@ -52,9 +52,6 @@ func _ready():
 	
 	SignalBus.InfoCardSelected.connect(set_selected_card)
 	SignalBus.CardPlayed.connect(attempt_card_played)
-
-func _process(delta: float) -> void:
-	pass
 
 func update_label():
 	label.text = str(players.size())
@@ -145,6 +142,7 @@ func finish_setup():
 	create_deck()
 	deal()
 	show_hands.rpc()
+	determine_next_turn()
 
 @rpc("authority","unreliable", "call_local")
 func remove_start_button():
