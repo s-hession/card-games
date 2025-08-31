@@ -36,10 +36,10 @@ var players = {}
 var player_info = {"name": "Name"}
 
 #change scene also
-var TESTING:bool = false #TODO command line arg
+var TESTING_LOCAL:bool = false #TODO command line arg
 
 func _ready():
-	if TESTING:
+	if TESTING_LOCAL:
 		players_required = 1
 		players = {1:"Name"}
 	multiplayer.peer_connected.connect(_on_player_connected)
